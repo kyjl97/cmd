@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 命令工具箱 | 得救之道</title>
+    <meta name="description" content="得救之道整理的 Windows、CMD 与 PowerShell 命令快捷工具箱">
+    <script>
+        (() => {
+            try {
+                const savedTheme = localStorage.getItem('theme');
+                document.documentElement.classList.toggle('dark', savedTheme !== 'light');
+            } catch (error) {
+                // 无法读取本地设置时使用浅色模式
+            }
+        })();
+    </script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Noto Sans SC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            950: '#082f49',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        slideUp: { '0%': { transform: 'translateY(10px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body { @apply bg-zinc-50 text-zinc-900 transition-colors duration-300 dark:bg-black dark:text-zinc-100; }
+        }
+        @layer components {
+            .glass-card {
+                @apply bg-white/70 backdrop-blur-md border border-zinc-200/50 shadow-sm transition-all duration-200
+                       dark:bg-[#0e0f12] dark:border-[#26282d];
+            }
+            .nav-link {
+                @apply flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all
+                       hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100;
+            }
+            .nav-link.active {
+                @apply bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-lg;
+            }
+            .command-code {
+                @apply font-mono text-sm px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 text-brand-600 dark:text-brand-500 border border-zinc-200 dark:border-zinc-700;
+            }
+            .action-btn {
+                @apply p-2 rounded-md transition-all hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95;
+            }
+            ::-webkit-scrollbar { width: 6px; }
+            ::-webkit-scrollbar-track { @apply bg-transparent; }
+            ::-webkit-scrollbar-thumb { @apply bg-zinc-300 dark:bg-zinc-800 rounded-full; }
+        }
+        html.theme-switching *,
+        html.theme-switching *::before,
+        html.theme-switching *::after {
+            transition: none !important;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-card !rounded-none !border-x-0 !border-t-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
+                    <i data-lucide="terminal" class="w-5 h-5 text-zinc-100 dark:text-zinc-900"></i>
+                </div>
+                <h1 class="text-lg font-bold tracking-tight hidden sm:block">Windows 命令大全</h1>
+            </div>
+
+            <div class="flex-1 max-w-sm mx-8 relative group sm:translate-x-6">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-brand-500 transition-colors"></i>
+                <input id="searchInput" type="text" placeholder="搜索命令、用途或分类..."
+                    class="w-full h-9 pl-10 pr-4 rounded-full bg-zinc-100 dark:bg-[#16181d] border border-transparent focus:border-brand-500/50 focus:bg-white dark:focus:bg-[#101114] outline-none transition-all text-sm">
+                <kbd class="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 text-[10px] text-zinc-400 font-mono hidden sm:block pointer-events-none">/</kbd>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="themeToggle" class="action-btn text-zinc-500" title="切换模式">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+                </button>
+                <a href="https://github.com/kyjl97" target="_blank" rel="noopener noreferrer" class="action-btn text-zinc-500" aria-label="访问 GitHub" title="GitHub">
+                    <i data-lucide="github" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="min-h-screen pt-32 pb-16 max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Sidebar Navigation -->
+            <aside class="lg:w-60 flex-shrink-0">
+                    <div class="glass-card rounded-2xl p-2 lg:sticky lg:top-32 lg:h-[752px] flex flex-col">
+                    <div class="hidden lg:flex items-center gap-2 px-3 py-2 mb-1 border-b border-zinc-200 dark:border-zinc-800">
+                        <i data-lucide="layout-list" class="w-4 h-4 text-brand-500"></i>
+                        <span class="text-sm font-bold">命令分类</span>
+                    </div>
+                    <nav id="categoryNav" class="flex flex-row lg:flex-col lg:justify-between gap-0.5 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:flex-1 lg:min-h-0 pb-3 lg:pb-0 scrollbar-hide">
+                        <!-- Categories will be injected here -->
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- Command Content -->
+            <div class="flex-1 min-w-0">
+                <div id="contentGrid">
+                    <!-- Selected category will be injected here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden py-20 text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center text-zinc-400">
+                        <i data-lucide="search-x" class="w-8 h-8"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-1">未找到匹配命令</h3>
+                    <p class="text-zinc-500 text-sm">尝试更换关键词，或者浏览侧边栏分类</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-6 border-t border-zinc-200 dark:border-zinc-800 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-6 h-6 bg-zinc-900 dark:bg-zinc-100 rounded flex items-center justify-center">
+                            <i data-lucide="code" class="w-3.5 h-3.5 text-zinc-100 dark:text-zinc-900"></i>
+                        </div>
+                        <span class="font-bold tracking-tight">CMD命令大全</span>
+                    </div>
+                    <p class="text-zinc-500 dark:text-zinc-400 text-sm max-w-sm">
+                        致力于打造最简洁、最高效的开发者工具集。把复杂的电脑命令，整理成随手可用的网页。
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
+                    <div>
+                        <h4 class="text-xs font-bold text-zinc-400 mb-2">个人简历</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><a href="https://kyjl97.github.io/deepseek-imagegen/" target="_blank" rel="noopener noreferrer" class="text-zinc-500 hover:text-brand-500 transition-colors">ai.kyjl97.github.io</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-zinc-400 mb-2">作品集</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><a href="https://kyjl97.github.io/oszen/" target="_blank" rel="noopener noreferrer" class="text-zinc-500 hover:text-brand-500 transition-colors">os.kyjl97.github.io</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-zinc-400 mb-2">GitHub</h4>
+                        <ul class="space-y-2 text-sm flex flex-col">
+                            <li><a href="https://github.com/kyjl97" target="_blank" rel="noopener noreferrer" class="text-zinc-500 hover:text-brand-500 transition-colors">kyjl97</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-lg bg-zinc-900 text-white text-sm font-medium shadow-2xl flex items-center gap-2 translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i data-lucide="check-circle-2" class="w-4 h-4 text-brand-500"></i>
+        <span>已复制到剪贴板</span>
+    </div>
+
+    <script>
+        // Data Processing from raw tab-separated string
+        const rawData = String.raw`系统属性	性能选项	SystemPropertiesPerformance
+系统属性	高级系统属性	SystemPropertiesAdvanced
+系统属性	计算机名与域	SystemPropertiesComputerName
+系统属性	数据执行保护	SystemPropertiesDataExecutionPrevention
+系统属性	硬件与设备安装	SystemPropertiesHardware
+系统属性	系统保护与还原	SystemPropertiesProtection
+系统属性	远程桌面属性	SystemPropertiesRemote
+系统属性	系统属性总入口	sysdm.cpl
+系统属性	直接打开环境变量	rundll32.exe sysdm.cpl,EditEnvironmentVariables
+CMD基础	切换目录	cd /d "文件夹路径"
+CMD基础	清空命令窗口	cls
+CMD基础	显示文字或变量	echo %PATH%
+CMD基础	查看环境变量	set
+CMD基础	永久设置用户变量	setx 变量名 "变量值"	重新打开终端后生效
+CMD基础	启动程序、文件或网址	start "" "程序、文件或网址"
+CMD基础	查看 CMD 帮助	help
+CMD基础	查看系统名称、版本和内部版本号	powershell -NoProfile -Command "Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber"	可在 CMD 中运行；Windows 11 的内核版本仍为 10.0
+CMD基础	查看当前日期	date /t
+CMD基础	查看当前时间	time /t
+CMD基础	查看命令历史	doskey /history
+CMD基础	复制输出到剪贴板	命令 | clip
+CMD基础	分页查看文本	more 文件名.txt
+CMD基础	文本排序	sort 文件名.txt
+CMD基础	在文件中查找文字	find /i "关键词" 文件名.txt
+CMD基础	查看文件扩展名关联	assoc
+CMD基础	查看文件类型打开方式	ftype
+CMD基础	临时进入目录并保存原路径	pushd "文件夹路径"
+CMD基础	返回 pushd 前的目录	popd
+CMD基础	等待指定秒数	timeout /t 5
+CMD基础	切换终端为 UTF-8	chcp 65001
+CMD基础	设置窗口标题	title 新标题
+CMD基础	生成 SSH 密钥	ssh-keygen -t ed25519	需要已安装 Windows OpenSSH 客户端
+CMD基础	解压 ZIP 或 TAR 压缩包	tar -xf "压缩包.zip"	新版 Windows 自带 tar
+Windows设置	设置主页	ms-settings:		ms-settings:
+Windows设置	显示设置	ms-settings:display		ms-settings:display
+Windows设置	声音设置	ms-settings:sound		ms-settings:sound
+Windows设置	音量合成器	ms-settings:apps-volume		ms-settings:apps-volume
+Windows设置	网络和 Internet	ms-settings:network-status		ms-settings:network-status
+Windows设置	高级网络设置	ms-settings:network-advancedsettings		ms-settings:network-advancedsettings
+Windows设置	WiFi 设置	ms-settings:network-wifi		ms-settings:network-wifi
+Windows设置	已知 WiFi 网络	ms-settings:network-wifisettings		ms-settings:network-wifisettings
+Windows设置	以太网设置	ms-settings:network-ethernet		ms-settings:network-ethernet
+Windows设置	VPN 设置	ms-settings:network-vpn		ms-settings:network-vpn
+Windows设置	代理设置	ms-settings:network-proxy		ms-settings:network-proxy
+Windows设置	移动热点	ms-settings:network-mobilehotspot		ms-settings:network-mobilehotspot
+Windows设置	蓝牙和设备	ms-settings:bluetooth		ms-settings:bluetooth
+Windows设置	打印机和扫描仪	ms-settings:printers		ms-settings:printers
+Windows设置	应用和功能	ms-settings:appsfeatures		ms-settings:appsfeatures
+Windows设置	默认应用	ms-settings:defaultapps		ms-settings:defaultapps
+Windows设置	启动应用	ms-settings:startupapps		ms-settings:startupapps
+Windows设置	可选功能	ms-settings:optionalfeatures		ms-settings:optionalfeatures
+Windows设置	Windows 更新	ms-settings:windowsupdate		ms-settings:windowsupdate
+Windows设置	恢复选项	ms-settings:recovery		ms-settings:recovery
+Windows设置	系统激活	ms-settings:activation		ms-settings:activation
+Windows设置	存储设置	ms-settings:storagesense		ms-settings:storagesense
+Windows设置	系统信息	ms-settings:about		ms-settings:about
+Windows设置	个性化	ms-settings:personalization		ms-settings:personalization
+Windows设置	主题设置	ms-settings:themes		ms-settings:themes
+Windows设置	锁屏设置	ms-settings:lockscreen		ms-settings:lockscreen
+Windows设置	任务栏设置	ms-settings:taskbar		ms-settings:taskbar
+Windows设置	日期和时间	ms-settings:dateandtime		ms-settings:dateandtime
+Windows设置	语言和区域	ms-settings:regionlanguage		ms-settings:regionlanguage
+Windows设置	登录选项	ms-settings:signinoptions		ms-settings:signinoptions
+Windows设置	其他用户	ms-settings:otherusers		ms-settings:otherusers
+Windows设置	隐私和安全	ms-settings:privacy		ms-settings:privacy
+Windows设置	摄像头隐私	ms-settings:privacy-webcam		ms-settings:privacy-webcam
+Windows设置	麦克风隐私	ms-settings:privacy-microphone		ms-settings:privacy-microphone
+Windows设置	游戏模式	ms-settings:gaming-gamemode		ms-settings:gaming-gamemode
+Windows设置	辅助功能键盘	ms-settings:easeofaccess-keyboard		ms-settings:easeofaccess-keyboard
+管理控制台	计算机管理	compmgmt.msc
+管理控制台	设备管理器	devmgmt.msc
+管理控制台	磁盘管理	diskmgmt.msc
+管理控制台	事件查看器	eventvwr.msc
+管理控制台	服务管理	services.msc
+管理控制台	任务计划程序	taskschd.msc
+管理控制台	高级防火墙	wf.msc
+管理控制台	性能监视器	perfmon.msc
+管理控制台	共享文件夹管理	fsmgmt.msc
+管理控制台	本地证书管理	certmgr.msc
+管理控制台	本地组策略	gpedit.msc	家庭版通常不提供
+管理控制台	本地安全策略	secpol.msc	家庭版通常不提供
+管理控制台	本地用户和组	lusrmgr.msc	家庭版通常不提供
+管理控制台	策略结果集	rsop.msc
+管理控制台	TPM 管理	tpm.msc
+管理控制台	WMI 管理	wmimgmt.msc
+控制面板	控制面板主页	control
+控制面板	程序和功能	appwiz.cpl		ms-settings:appsfeatures
+控制面板	网络连接	ncpa.cpl		ms-settings:network-status
+控制面板	电源选项	powercfg.cpl
+控制面板	Windows 防火墙	firewall.cpl		windowsdefender://network
+控制面板	Internet 属性	inetcpl.cpl
+控制面板	声音属性	mmsys.cpl		ms-settings:sound
+控制面板	日期和时间	timedate.cpl		ms-settings:dateandtime
+控制面板	区域设置	intl.cpl		ms-settings:regionlanguage
+控制面板	鼠标属性	main.cpl
+控制面板	游戏控制器	joy.cpl
+控制面板	颜色管理	colorcpl
+控制面板	文件资源管理器选项	control folders
+控制面板	设备和打印机	control printers		ms-settings:printers
+控制面板	字体	control fonts		ms-settings:fonts
+控制面板	键盘属性	control keyboard
+控制面板	凭据管理器	control /name Microsoft.CredentialManager
+控制面板	恢复工具	control /name Microsoft.Recovery		ms-settings:recovery
+控制面板	文件历史记录	control /name Microsoft.FileHistory
+系统工具	运行对话框	Win + R	快捷键
+系统工具	命令提示符	cmd
+系统工具	PowerShell	powershell
+系统工具	Windows 终端	wt
+系统工具	注册表编辑器	regedit
+系统工具	系统配置	msconfig
+系统工具	任务管理器	taskmgr
+系统工具	资源监视器	resmon
+系统工具	生成系统诊断报告	perfmon /report	通常需要管理员权限
+系统工具	可靠性监视器	perfmon /rel	查看软件崩溃、蓝屏和更新失败记录
+系统工具	系统信息	msinfo32		ms-settings:about
+系统工具	DirectX 诊断	dxdiag
+系统工具	Windows 版本	winver
+系统工具	内存诊断	mdsched
+系统工具	磁盘清理	cleanmgr
+系统工具	高级磁盘清理	cleanmgr /sagerun:1	需先用 cleanmgr /sageset:1 配置
+系统工具	恶意软件删除工具	mrt
+系统工具	远程桌面连接	mstsc
+系统工具	远程协助	msra
+系统工具	步骤记录器	psr	部分新版 Windows 已弃用
+系统工具	屏幕截图	snippingtool
+系统工具	屏幕键盘	osk		ms-settings:easeofaccess-keyboard
+系统工具	放大镜	magnify
+系统工具	讲述人	narrator
+系统工具	字符映射表	charmap
+系统工具	计算器	calc
+系统工具	记事本	notepad
+系统工具	可选功能管理	OptionalFeatures
+系统工具	系统还原	rstrui
+系统工具	恢复驱动器	recoverydrive
+系统工具	启动文件夹	shell:startup
+系统工具	所有用户启动文件夹	shell:common startup
+系统工具	所有应用列表	shell:AppsFolder		ms-settings:appsfeatures
+系统工具	发送到文件夹	shell:sendto
+系统工具	临时文件夹	%temp%
+系统工具	文件资源管理器	explorer.exe
+系统工具	重启资源管理器	taskkill /f /im explorer.exe & start explorer.exe
+系统工具	注册 DLL	regsvr32 "DLL文件路径"	仅适用于支持 DllRegisterServer 的 DLL，通常需要管理员权限
+系统工具	重置 Microsoft Store 缓存	wsreset
+系统工具	磁盘优化工具	dfrgui
+系统工具	磁盘分区命令行	diskpart	高级工具，请勿执行不熟悉的写入命令
+系统工具	Windows 激活界面	slui		ms-settings:activation
+系统工具	ClearType 文本调节	cttune
+系统工具	显示颜色校准	dccw
+系统工具	文件签名验证	sigverif
+系统工具	列出第三方驱动包	pnputil /enum-drivers	请在管理员终端运行
+系统工具	重新扫描硬件变化	pnputil /scan-devices	请在管理员终端运行
+系统工具	查看时间同步状态	w32tm /query /status
+系统工具	立即同步系统时间	w32tm /resync	建议在管理员终端运行
+系统工具	查看最新系统日志	wevtutil qe System /c:20 /rd:true /f:text	显示最新 20 条系统事件
+系统工具	查看 TPM 设备状态	tpmtool getdeviceinformation
+系统工具	查找存在故障的设备	pnputil /enum-devices /problem	Windows 10 1903 及以上版本；快速定位设备管理器中的异常设备
+系统工具	列出已断开的设备	pnputil /enum-devices /disconnected	可用于发现残留的旧硬件和幽灵设备
+系统工具	查看设备树及匹配驱动	pnputil /enum-devicetree /connected /drivers	仅适用于 Windows 11 23H2 及以上版本
+系统工具	备份第三方驱动包	pnputil /export-driver * "%USERPROFILE%\Desktop\DriverBackup"	需要管理员权限；请先创建桌面的 DriverBackup 文件夹
+系统工具	列出全部事件日志通道	wevtutil el	可发现常规事件查看器界面中不易找到的日志通道
+系统工具	导出系统事件日志	wevtutil epl System "%USERPROFILE%\Desktop\System.evtx" /ow:true	建议使用管理员终端；导出后可在其他电脑的事件查看器中分析
+系统工具	查看完整系统审计策略	auditpol /get /category:*	用于核对登录、进程、对象访问等安全审计是否启用
+系统工具	导出本地安全策略	secedit /export /cfg "%USERPROFILE%\Desktop\security-policy.inf"	需要管理员权限；只导出配置，不会修改当前策略
+网络诊断	基础 IP 信息	ipconfig
+网络诊断	完整 IP 信息	ipconfig /all
+网络诊断	清理 DNS 缓存	ipconfig /flushdns
+网络诊断	查看 DNS 缓存	ipconfig /displaydns
+网络诊断	释放 DHCP 地址	ipconfig /release	会暂时断网
+网络诊断	重新获取 DHCP 地址	ipconfig /renew
+网络诊断	测试网络连通性	ping 1.1.1.1
+网络诊断	持续 Ping	ping -t 1.1.1.1	按 Ctrl+C 停止
+网络诊断	跟踪网络路由	tracert 1.1.1.1
+网络诊断	综合路径诊断	pathping 1.1.1.1
+网络诊断	查询域名解析	nslookup example.com
+网络诊断	查看网络连接和 PID	netstat -ano
+网络诊断	查看监听端口	netstat -ano | findstr LISTENING
+网络诊断	查看 ARP 缓存	arp -a
+网络诊断	查看路由表	route print
+网络诊断	查看网卡 MAC	getmac /v
+网络诊断	查看电脑名称	hostname
+网络诊断	查看网络接口	netsh interface show interface
+网络诊断	查看防火墙状态	netsh advfirewall show allprofiles
+网络诊断	查看 WinHTTP 代理	netsh winhttp show proxy	显示系统 WinHTTP 代理及绕过列表
+网络诊断	设置 WinHTTP 代理	netsh winhttp set proxy 127.0.0.1:7890	需要管理员权限；请先确认本机 7890 端口的代理服务正在运行
+网络诊断	重置 Winsock	netsh winsock reset	需要管理员权限，重启后生效
+网络诊断	重置 TCP/IP	netsh int ip reset	需要管理员权限，重启后生效
+网络诊断	查询外网 IPv4	curl 4.ipw.cn	需要联网
+网络诊断	PowerShell 端口测试	Test-NetConnection example.com -Port 443
+网络诊断	重新注册 DNS	ipconfig /registerdns	需要管理员权限
+网络诊断	查询域名 MX 记录	nslookup -type=mx example.com
+网络诊断	只查看网页响应头	curl -I https://example.com
+网络诊断	查看 TCP/IP 接口配置	netsh interface ip show config
+网络诊断	列出可用网络跟踪场景	netsh trace show scenarios	用于查找 InternetClient、LAN 等系统内置诊断场景
+网络诊断	启动 Windows 网络跟踪	netsh trace start capture=yes report=no persistent=no maxSize=256 traceFile="%USERPROFILE%\Desktop\network.etl"	需要管理员权限；完成后必须运行 netsh trace stop，日志可能包含敏感网络信息
+网络诊断	停止 Windows 网络跟踪	netsh trace stop	停止抓取并写入 ETL 日志
+网络诊断	启动 PktMon 完整抓包	pktmon start --capture --pkt-size 0 --file-name "%USERPROFILE%\Desktop\PktMon.etl"	需要管理员权限；PktMon 是 Windows 内置的数据包监视器
+网络诊断	停止 PktMon 抓包	pktmon stop	停止抓包并完成 ETL 文件写入
+网络诊断	转换 PktMon 为 PCAPNG	pktmon etl2pcap "%USERPROFILE%\Desktop\PktMon.etl" --out "%USERPROFILE%\Desktop\PktMon.pcapng"	转换后可使用 Wireshark 等工具分析
+无线网络	列出保存的 WiFi	netsh wlan show profiles
+无线网络	查看指定 WiFi 密码	netsh wlan show profile name="WiFi名称" key=clear
+无线网络	查看无线网卡驱动	netsh wlan show drivers
+无线网络	扫描附近 WiFi	netsh wlan show networks mode=bssid
+无线网络	查看当前 WiFi 状态	netsh wlan show interfaces
+无线网络	生成 WiFi 诊断报告	netsh wlan show wlanreport	报告保存到 ProgramData
+文件与磁盘	列出当前目录	dir
+文件与磁盘	递归列出目录	dir /s
+文件与磁盘	显示目录树	tree /f
+文件与磁盘	打开当前目录	explorer .
+文件与磁盘	查找程序位置	where.exe 程序名	在 CMD 和 PowerShell 中均可运行
+文件与磁盘	查看文本文件	type 文件名.txt
+文件与磁盘	递归搜索文本	findstr /s /i "关键词" *.*
+文件与磁盘	比较两个文件	fc 文件1 文件2
+文件与磁盘	复制文件	copy 源文件 目标路径
+文件与磁盘	移动文件	move 源文件 目标路径
+文件与磁盘	可靠复制目录	robocopy 源目录 目标目录 /E
+文件与磁盘	新建目录	mkdir 文件夹名
+文件与磁盘	扫描磁盘错误	chkdsk C: /scan	需要管理员权限
+文件与磁盘	查看磁盘可用空间	fsutil volume diskfree C:	需要管理员权限
+文件与磁盘	分析磁盘碎片	defrag C: /A
+文件与磁盘	查看 CompactOS 状态	compact /compactos:query
+文件与磁盘	查看文件属性	attrib 文件名
+文件与磁盘	重命名文件	ren 旧文件名 新文件名
+文件与磁盘	兼容方式复制目录	xcopy 源目录 目标目录 /E /I
+文件与磁盘	创建目录符号链接	mklink /D "链接路径" "目标路径"	通常需要管理员权限或开发者模式
+文件与磁盘	创建虚拟盘符	subst Z: "文件夹路径"
+文件与磁盘	查看所有盘符	fsutil fsinfo drives
+文件与磁盘	查看文件权限	icacls "文件或文件夹路径"
+文件与磁盘	检查 SSD 的 TRIM 状态	fsutil behavior query DisableDeleteNotify	需要管理员权限；返回 0 表示已启用 TRIM
+常用C盘路径	系统盘根目录	%SystemDrive%	通常为 C:，会自动适配实际的 Windows 系统盘
+常用C盘路径	当前用户主目录	%USERPROFILE%	包含当前用户的桌面、文档、下载等个人文件夹
+常用C盘路径	用户漫游配置	%APPDATA%	软件配置、账户数据和可随域账户漫游的数据
+常用C盘路径	用户本地配置	%LOCALAPPDATA%	软件缓存、临时数据和仅保存在本机的配置
+常用C盘路径	当前用户临时目录	%TEMP%	软件和系统为当前用户创建的临时文件
+常用C盘路径	全局应用数据	%PROGRAMDATA%	所有用户共享的软件配置与数据，默认属于隐藏目录
+常用C盘路径	公共用户目录	%PUBLIC%	所有本机用户均可访问的公共文件夹
+常用C盘路径	64 位程序目录	%ProgramFiles%	64 位 Windows 中的软件默认安装目录
+常用C盘路径	32 位程序目录	%ProgramFiles(x86)%	仅在 64 位 Windows 中存在
+常用C盘路径	Windows 安装目录	%SystemRoot%	通常为 C:\Windows，与 %WINDIR% 指向同一位置
+常用C盘路径	System32 系统目录	%WINDIR%\System32	Windows 核心程序、命令和系统组件目录
+常用C盘路径	Hosts 与网络配置目录	%WINDIR%\System32\drivers\etc	包含 hosts、networks、protocol 等网络配置文件
+常用C盘路径	当前用户桌面	shell:Desktop	可适配 OneDrive 或组策略重定向后的桌面位置
+常用C盘路径	当前用户下载目录	shell:Downloads	比不存在的 %Downloads% 环境变量更可靠
+常用C盘路径	当前用户文档目录	shell:Personal	可适配 OneDrive 或组策略重定向后的文档位置
+常用C盘路径	当前用户启动目录	shell:Startup	放入快捷方式后可在当前用户登录时自动运行
+常用C盘路径	所有用户启动目录	shell:Common Startup	通常需要管理员权限才能写入
+常用C盘路径	应用崩溃转储目录	%LOCALAPPDATA%\CrashDumps	启用 Windows Error Reporting 本地转储后存放崩溃文件
+常用C盘路径	Windows 日志目录	%WINDIR%\Logs	常见的 CBS、DISM 与系统组件日志存放位置
+常用C盘路径	Windows 临时目录	%WINDIR%\Temp	系统级临时文件目录，部分内容需要管理员权限访问
+系统修复	扫描并修复系统文件	sfc /scannow	需要管理员权限
+系统修复	快速检查系统映像	DISM /Online /Cleanup-Image /CheckHealth	需要管理员权限
+系统修复	扫描系统映像	DISM /Online /Cleanup-Image /ScanHealth	需要管理员权限
+系统修复	修复系统映像	DISM /Online /Cleanup-Image /RestoreHealth	需要管理员权限
+系统修复	修复磁盘错误	chkdsk C: /f	需要管理员权限，系统盘可能要求重启
+系统修复	查看恢复环境状态	reagentc /info	建议在管理员终端运行
+系统修复	启用恢复环境	reagentc /enable	需要管理员权限
+系统修复	查看启动配置	bcdedit /enum	需要管理员权限
+系统修复	刷新组策略	gpupdate /force
+系统修复	查看组策略结果	gpresult /r
+系统修复	生成电池报告	powercfg /batteryreport
+系统修复	生成能效报告	powercfg /energy	需要管理员权限并等待约 60 秒
+系统修复	查看阻止休眠的程序	powercfg /requests	建议在管理员终端运行
+系统修复	查看上次唤醒来源	powercfg /lastwake	建议在管理员终端运行
+系统修复	查看唤醒定时器	powercfg /waketimers	建议在管理员终端运行
+系统修复	查看可唤醒电脑的设备	powercfg /devicequery wake_armed	建议在管理员终端运行
+系统修复	生成现代待机报告	powercfg /sleepstudy	需要管理员权限，仅支持现代待机设备
+系统修复	查看 BitLocker 状态	manage-bde -status	请在管理员终端运行
+系统修复	只检查系统文件	sfc /verifyonly	需要管理员权限，不执行修复
+系统修复	查看系统驱动清单	DISM /Online /Get-Drivers /Format:Table	需要管理员权限
+系统修复	分析 WinSxS 组件存储	Dism.exe /Online /Cleanup-Image /AnalyzeComponentStore	需要管理员权限；只生成分析报告，不会执行清理
+系统修复	清理旧版系统组件	DISM /Online /Cleanup-Image /StartComponentCleanup	需要管理员权限，会实际清理旧组件
+系统修复	查看 VSS 写入器状态	vssadmin list writers	需要管理员权限，用于排查备份和还原故障
+系统修复	生成系统睡眠诊断报告	powercfg /systemsleepdiagnostics /output "%USERPROFILE%\Desktop\sleep-diagnostics.html"	需要管理员权限；分析未使用电脑期间是否真正进入睡眠
+系统修复	生成系统电源转换报告	powercfg /systempowerreport /output "%USERPROFILE%\Desktop\system-power-report.html"	需要管理员权限；记录近几天的睡眠、唤醒和电源转换
+系统修复	导出 SRUM 资源消耗记录	powercfg /srumutil /output "%USERPROFILE%\Desktop\srum.csv" /csv	建议使用管理员终端；包含应用能耗和网络资源使用记录
+系统修复	开启卓越性能	powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61	部分设备不支持
+系统修复	重启进入 BIOS	shutdown /r /fw /t 0	会立即重启
+系统修复	立即关机	shutdown /s /t 0	会立即关机
+系统修复	立即重启	shutdown /r /t 0	会立即重启
+系统修复	取消计划关机	shutdown /a
+账户与进程	当前用户名	whoami
+账户与进程	当前用户完整权限	whoami /all
+账户与进程	用户账户设置	netplwiz		ms-settings:otherusers
+账户与进程	列出本地用户	net user
+账户与进程	查看指定用户	net user 用户名
+账户与进程	查看管理员组	net localgroup administrators
+账户与进程	列出运行进程	tasklist
+账户与进程	查看进程关联服务	tasklist /svc
+账户与进程	按 PID 结束进程	taskkill /pid PID /f	请替换 PID
+账户与进程	按名称结束进程	taskkill /f /im 程序名.exe	请替换程序名
+账户与进程	强制关闭任务管理器	taskkill /f /im taskmgr.exe
+账户与进程	查看所有服务	sc.exe query	在 CMD 和 PowerShell 中均可运行
+账户与进程	查看运行中的服务	sc.exe query state= running	在 CMD 和 PowerShell 中均可运行
+账户与进程	查看已启动服务	net start
+账户与进程	查看驱动列表	driverquery
+账户与进程	查看系统综合信息	systeminfo
+账户与进程	查看 BIOS 序列号	wmic bios get serialnumber	WMIC 在部分新版系统中可能未安装
+账户与进程	查看登录会话	query user
+账户与进程	查看保存的凭据	cmdkey /list
+账户与进程	以其他用户运行命令	runas /user:用户名 cmd
+账户与进程	查看本机账户策略	net accounts
+账户与进程	查看工作站网络统计	net statistics workstation
+共享与任务	查看网络驱动映射	net use
+共享与任务	映射网络驱动器	net use Z: \\服务器\共享
+共享与任务	查看本机共享	net share
+共享与任务	查看局域网计算机	net view
+共享与任务	查看远程打开的文件	openfiles /query	通常需要管理员权限；本地文件跟踪默认可能未启用
+共享与任务	查看计划任务	schtasks /query
+共享与任务	详细查看计划任务	schtasks /query /fo LIST /v
+共享与任务	立即运行指定计划任务	schtasks /run /tn "任务名称"
+PowerShell	系统综合信息	Get-ComputerInfo
+PowerShell	操作系统信息	Get-CimInstance Win32_OperatingSystem
+PowerShell	BIOS 信息	Get-CimInstance Win32_BIOS
+PowerShell	处理器信息	Get-CimInstance Win32_Processor
+PowerShell	内存信息	Get-CimInstance Win32_PhysicalMemory
+PowerShell	逻辑磁盘信息	Get-CimInstance Win32_LogicalDisk
+PowerShell	网络综合信息	Get-NetIPConfiguration
+PowerShell	网卡信息	Get-NetAdapter
+PowerShell	IP 地址信息	Get-NetIPAddress
+PowerShell	路由信息	Get-NetRoute
+PowerShell	DNS 服务器信息	Get-DnsClientServerAddress
+PowerShell	列出进程	Get-Process
+PowerShell	列出服务	Get-Service
+PowerShell	查看已安装修补程序	Get-HotFix	不包含所有功能更新和驱动更新
+PowerShell	查看最近系统事件	Get-WinEvent -LogName System -MaxEvents 20
+PowerShell	查看环境变量	Get-ChildItem Env:
+PowerShell	计算文件 SHA256	Get-FileHash "文件路径"
+PowerShell	查看执行策略	Get-ExecutionPolicy -List
+PowerShell	查看可选功能	Get-WindowsOptionalFeature -Online
+PowerShell	查看 Appx 和 MSIX 应用	Get-AppxPackage
+PowerShell	安装 Appx 或 MSIX 应用包	Add-AppxPackage -Path ".\安装包.msix"	-Path 指定安装包路径，.\ 表示当前文件夹；当前用户安装通常无需管理员权限，权限不足时再使用管理员 PowerShell
+PowerShell	查看文件系统盘符	Get-PSDrive -PSProvider FileSystem
+PowerShell	查看物理硬盘	Get-PhysicalDisk
+PowerShell	查看卷和剩余空间	Get-Volume
+PowerShell	查看硬盘可靠性数据	Get-PhysicalDisk | Get-StorageReliabilityCounter	建议管理员 PowerShell；部分硬盘不提供温度或磨损数据
+PowerShell	查看 Defender 状态	Get-MpComputerStatus	需要系统提供 Microsoft Defender PowerShell 模块
+PowerShell	Defender 快速扫描	Start-MpScan -ScanType QuickScan	需要系统提供 Microsoft Defender PowerShell 模块
+PowerShell	更新 Defender 病毒定义	Update-MpSignature	需要系统提供 Microsoft Defender PowerShell 模块
+PowerShell	检查安全启动状态	Confirm-SecureBootUEFI	需要管理员 PowerShell；传统 BIOS 设备不支持
+PowerShell	检查文件数字签名	Get-AuthenticodeSignature "文件路径"
+PowerShell	查找可用命令	Get-Command *关键词*
+PowerShell	查看命令完整帮助	Get-Help 命令名 -Full
+PowerShell	列出文件和目录	Get-ChildItem -Force
+PowerShell	切换目录	Set-Location "文件夹路径"
+PowerShell	复制文件或目录	Copy-Item "源路径" "目标路径" -Recurse
+PowerShell	移动文件或目录	Move-Item "源路径" "目标路径"
+PowerShell	新建文件夹	New-Item -ItemType Directory "文件夹路径"
+PowerShell	读取文本文件	Get-Content "文件路径"
+PowerShell	搜索文件内容	Select-String -Path "文件路径" -Pattern "关键词"
+PowerShell	筛选对象	Get-Process | Where-Object CPU -gt 10
+PowerShell	选择对象属性	Get-Process | Select-Object Name, Id, CPU
+PowerShell	排序对象	Get-Process | Sort-Object CPU -Descending
+PowerShell	统计对象	Get-ChildItem | Measure-Object
+PowerShell	查看对象属性和方法	Get-Process | Get-Member
+PowerShell	导出 CSV	Get-Process | Export-Csv "进程.csv" -NoTypeInformation
+PowerShell	导入 CSV	Import-Csv "数据.csv"
+PowerShell	转换为 JSON	Get-Process | Select-Object -First 1 | ConvertTo-Json
+PowerShell	解析 JSON	'{"name":"Windows"}' | ConvertFrom-Json
+PowerShell	下载网页或文件	Invoke-WebRequest "https://example.com"
+PowerShell	调用 REST API	Invoke-RestMethod "https://example.com/api"
+PowerShell	启动程序	Start-Process "程序路径"
+PowerShell	查看命令历史	Get-History
+PowerShell	读取剪贴板	Get-Clipboard
+PowerShell	写入剪贴板	Set-Clipboard "文本内容"
+PowerShell	解析 DNS	Resolve-DnsName example.com
+PowerShell	检查路径是否存在	Test-Path "文件或文件夹路径"
+PowerShell	创建 ZIP 压缩包	Compress-Archive -Path "源路径" -DestinationPath "压缩包.zip"
+PowerShell	解压 ZIP 压缩包	Expand-Archive -Path "压缩包.zip" -DestinationPath "目标目录"
+PowerShell	Windows 11 恢复完整右键	reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve
+软件管理	搜索软件	winget search 软件名
+软件管理	安装软件	winget install 软件包ID
+软件管理	列出已安装软件	winget list
+软件管理	查看可升级软件	winget upgrade
+软件管理	升级全部软件	winget upgrade --all	会批量修改已安装软件，执行前建议先查看可升级列表
+软件管理	卸载软件	winget uninstall 软件包ID
+软件管理	更新软件源	winget source update
+软件管理	查看软件详情	winget show 软件包ID
+软件管理	只下载安装包	winget download --id 软件包ID --exact	默认保存到用户的“下载”文件夹，不直接安装
+软件管理	查看升级固定项	winget pin list	查看被固定、不会自动升级的软件包
+软件管理	导出软件清单	winget export -o apps.json
+软件管理	从清单批量安装	winget import -i apps.json
+软件管理	打开 Microsoft Store	ms-windows-store://home		ms-windows-store://home
+软件管理	商店下载和更新	ms-windows-store://downloadsandupdates		ms-windows-store://downloadsandupdates
+Winget命令	Obsidian	winget install --id Obsidian.Obsidian --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Google Chrome	winget install --id Google.Chrome --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Mozilla Firefox	winget install --id Mozilla.Firefox --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Brave 浏览器	winget install --id Brave.Brave --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Visual Studio Code	winget install --id Microsoft.VisualStudioCode --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Git	winget install --id Git.Git --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Node.js LTS	winget install --id OpenJS.NodeJS.LTS --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Windows Terminal	winget install --id Microsoft.WindowsTerminal --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Zed 编辑器	winget install --id ZedIndustries.Zed --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	7-Zip	winget install --id 7zip.7zip --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	VLC 播放器	winget install --id VideoLAN.VLC --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	PotPlayer	winget install --id Daum.PotPlayer --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Internet Download Manager	winget install --id Tonec.InternetDownloadManager --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	QuickLook	winget install --id QL-Win.QuickLook --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	PixPin	winget install --id PixPin.PixPin --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Microsoft PowerToys	winget install --id Microsoft.PowerToys --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Everything	winget install --id voidtools.Everything --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Notepad++	winget install --id Notepad++.Notepad++ --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Honeyview	winget install --id Bandisoft.Honeyview --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	Geek Uninstaller	winget install --id GeekUninstaller.GeekUninstaller --exact --silent --accept-package-agreements --accept-source-agreements
+Winget命令	SumatraPDF	winget install --id SumatraPDF.SumatraPDF --exact --silent --accept-package-agreements --accept-source-agreements`;
+
+        const commands = rawData.trim().split(/\r?\n/).map((line, id) => {
+            const [category, title, command, note = "", open = ""] = line.split("\t");
+            return { id, category, title, command, note, open };
+        });
+
+        const categories = [...new Set(commands.map(item => item.category))];
+        const categoryCounts = commands.reduce((counts, item) => {
+            counts.set(item.category, (counts.get(item.category) || 0) + 1);
+            return counts;
+        }, new Map());
+        let activeCategory = categories[0];
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[char]);
+        }
+
+        // DOM Elements
+        const searchInput = document.getElementById('searchInput');
+        const contentGrid = document.getElementById('contentGrid');
+        const categoryNav = document.getElementById('categoryNav');
+        const emptyState = document.getElementById('emptyState');
+        const themeToggle = document.getElementById('themeToggle');
+        const toast = document.getElementById('toast');
+
+        // Initialize Icons
+        lucide.createIcons();
+
+        // Render Navigation
+        function renderNav() {
+            categoryNav.innerHTML = categories.map(cat => `
+                            <button type="button" class="nav-link w-full whitespace-nowrap lg:whitespace-normal text-left ${cat === activeCategory ? 'active' : ''}" data-category="${escapeHTML(cat)}" aria-pressed="${cat === activeCategory}">
+                    <i data-lucide="tag" class="w-4 h-4"></i>
+                    <span>${escapeHTML(cat)}（${categoryCounts.get(cat)}）</span>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // Render Commands
+        function renderCommands(filter = '') {
+            const keyword = filter.trim().toLowerCase();
+            const filtered = keyword
+                ? commands.filter(item =>
+                    item.title.toLowerCase().includes(keyword) ||
+                    item.command.toLowerCase().includes(keyword) ||
+                    item.category.toLowerCase().includes(keyword) ||
+                    item.note.toLowerCase().includes(keyword)
+                )
+                : commands.filter(item => item.category === activeCategory);
+
+            if (filtered.length === 0) {
+                contentGrid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            const panelTitle = keyword ? `搜索结果：${filter.trim()}` : activeCategory;
+
+            contentGrid.innerHTML = `
+                <section class="glass-card h-[752px] rounded-2xl p-4 flex flex-col dark:bg-[#101114] dark:border-[#2a2d34] animate-fade-in">
+                    <div class="flex items-center gap-3 mb-3 pb-3 border-b border-zinc-200 dark:border-[#2a2d34]">
+                        <h3 class="text-lg font-bold truncate" title="${escapeHTML(panelTitle)}">${escapeHTML(panelTitle)}</h3>
+                        <div class="h-px flex-1 bg-zinc-200 dark:bg-[#2a2d34]"></div>
+                        <span class="flex-shrink-0 px-2 py-1 rounded-lg bg-zinc-100 dark:bg-[#181b21] border border-zinc-200 dark:border-[#30343d] text-xs font-mono text-zinc-500 dark:text-zinc-300">${filtered.length}</span>
+                    </div>
+                    <div class="h-[656px] flex-none overflow-y-auto pr-2 space-y-2" tabindex="0" aria-label="${escapeHTML(panelTitle)}命令列表，共${filtered.length}项">
+                        ${filtered.map(item => `
+                            <div class="h-[102px] flex-shrink-0 flex items-center gap-3 px-4 py-2 rounded-xl bg-zinc-50 dark:bg-[#181b21] border border-zinc-200/80 dark:border-[#2b2f38] hover:border-brand-500/50 transition-colors">
+                                <div class="min-w-0 flex-1">
+                                    <h4 class="font-bold text-sm text-zinc-800 dark:text-zinc-100 truncate" title="${escapeHTML(item.title)}">${escapeHTML(item.title)}</h4>
+                                    <code class="font-mono text-sm text-brand-600 dark:text-[#38bdf8] block truncate" title="${escapeHTML(item.command)}">${escapeHTML(item.command)}</code>
+                                    ${item.note ? `<p class="text-[11px] text-zinc-500 dark:text-zinc-400 truncate" title="${escapeHTML(item.note)}">${escapeHTML(item.note)}</p>` : ''}
+                                </div>
+                                <div class="flex flex-shrink-0 gap-1.5">
+                                    <button type="button" data-copy-id="${item.id}" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white dark:text-zinc-950 text-xs font-bold transition-colors active:scale-95" title="复制命令">
+                                        <i data-lucide="copy" class="w-3.5 h-3.5"></i><span>复制</span>
+                                    </button>
+                                    ${item.open ? `<button type="button" data-open-id="${item.id}" class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-brand-600 dark:text-[#38bdf8] text-xs font-bold hover:bg-zinc-100 dark:hover:bg-[#20232a] transition-colors" title="直接打开"><i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>打开</span></button>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+            `;
+
+            lucide.createIcons();
+        }
+
+        // Copy Functionality
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            }
+            showToast();
+        }
+
+        function showToast() {
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 2000);
+        }
+
+        contentGrid.addEventListener('click', event => {
+            const copyButton = event.target.closest('[data-copy-id]');
+            const openButton = event.target.closest('[data-open-id]');
+            if (copyButton) {
+                const item = commands[Number(copyButton.dataset.copyId)];
+                if (item) copyToClipboard(item.command);
+            }
+            if (openButton) {
+                const item = commands[Number(openButton.dataset.openId)];
+                if (item?.open) window.location.href = item.open;
+            }
+        });
+
+        categoryNav.addEventListener('click', event => {
+            const button = event.target.closest('[data-category]');
+            if (!button) return;
+            activeCategory = button.dataset.category;
+            searchInput.value = '';
+            renderNav();
+            renderCommands();
+        });
+
+        // Search Input Handler
+        searchInput.addEventListener('input', (e) => {
+            renderCommands(e.target.value);
+        });
+
+        // Shortcut for search
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/') {
+                if (document.activeElement !== searchInput) {
+                    e.preventDefault();
+                    searchInput.focus();
+                }
+            }
+        });
+
+        // Theme Toggle
+        themeToggle.addEventListener('click', () => {
+            const root = document.documentElement;
+            root.classList.add('theme-switching');
+            root.classList.toggle('dark');
+            try {
+                localStorage.setItem('theme', root.classList.contains('dark') ? 'dark' : 'light');
+            } catch (error) {
+                // 本地存储不可用时仍保留本次切换结果
+            }
+            requestAnimationFrame(() => root.classList.remove('theme-switching'));
+        });
+
+        // Initial Render
+        renderNav();
+        renderCommands();
+    </script>
+</body>
+</html>
